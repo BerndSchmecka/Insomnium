@@ -40,12 +40,23 @@ namespace Insomnium {
                 HttpListenerRequest request = context.Request;
                 HttpListenerResponse response = context.Response;
 
+                response.AddHeader("Access-Control-Allow-Origin", "*");
+                response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                response.AddHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
                 ResponseData rd = new ResponseData(response, "404 Not Found", "text/plain", 404);
 
-                switch(request.Url.AbsolutePath) {
-                    case "/_matrix/client/versions":
-                        rd = new ResponseData(response, JsonConvert.SerializeObject(new JSON_Versions(Program.SUPPORTED_CLIENT_VERSIONS)), "application/json", 200);
-                        break;
+                if(request.HttpMethod == "GET"){
+                    switch(request.Url.AbsolutePath) {
+                        case "/_matrix/client/versions":
+                            rd = new ResponseData(response, JsonConvert.SerializeObject(new JSON_Versions(Program.SUPPORTED_CLIENT_VERSIONS)), "application/json", 200);
+                            break;
+                        case "/_matrix/federation/v1/version":
+                            rd = new ResponseData(response, JsonConvert.SerializeObject(new JSON_Federation_Version("Insomnium", Program.VERSION)), "application/json", 200);
+                            break;
+                    }
+                } else if (request.HttpMethod == "OPTIONS"){
+                    rd = new ResponseData(response, "", "application/json", 200);
                 }
                 
                 await response.OutputStream.WriteAsync(rd.Data, 0, rd.Data.Length);
