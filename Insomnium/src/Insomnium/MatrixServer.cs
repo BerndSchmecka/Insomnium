@@ -29,7 +29,7 @@ namespace Insomnium {
 
     class MatrixServer {
         private static HttpListener listener;
-        private static string url = "http://*:8008/";
+        private static string url = "http://*:9009/"; //SHOULD be 8008!!!!
 
         private async Task HandleInboundConnections() {
             bool runServer = true;
