@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 namespace Insomnium {
 
-    struct ResponseData {
+    public struct ResponseData {
         public HttpListenerResponse Response {get;}
         public byte[] Data {get;}
         public string ContentType {get;}
@@ -54,9 +54,20 @@ namespace Insomnium {
                         case "/_matrix/federation/v1/version":
                             rd = new ResponseData(response, JsonConvert.SerializeObject(new JSON_Federation_Version("Insomnium", Program.VERSION)), "application/json", 200);
                             break;
+                        case "/_matrix/client/r0/login":
+                            rd = new ResponseData(response, JsonConvert.SerializeObject(new JSON_Login_Flows(Program.SUPPORTED_LOGIN_FLOWS)), "application/json", 200);
+                            break;
                     }
                 } else if (request.HttpMethod == "OPTIONS"){
                     rd = new ResponseData(response, "", "application/json", 200);
+                } else if (request.HttpMethod == "POST") {
+                    switch(request.Url.AbsolutePath){
+                        case "/_matrix/client/r0/login":
+                            StreamReader sr = new StreamReader(request.InputStream);
+                            LoginHandler lh = new LoginHandler(sr.ReadToEnd(), response);
+                            rd = lh.LoginResponse;
+                            break;
+                    }
                 }
                 
                 await response.OutputStream.WriteAsync(rd.Data, 0, rd.Data.Length);
