@@ -5,6 +5,8 @@ using System.Text;
 using System.Net;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace Insomnium {
 
@@ -28,15 +30,30 @@ namespace Insomnium {
     }
 
     class MatrixServer {
-        private static HttpListener listener;
         private static string url = "http://*:9009/"; //SHOULD be 8008!!!!
 
-        private async Task HandleInboundConnections() {
-            bool runServer = true;
+        private async Task Listen(string prefix, int maxConcurrentRequests, CancellationToken token){
+            HttpListener listener = new HttpListener();
+            listener.Prefixes.Add(prefix);
+            listener.Start();
 
-            while(runServer) {
-                HttpListenerContext context = await listener.GetContextAsync();
+            var requests = new HashSet<Task>();
+            for(int i=0; i < maxConcurrentRequests; i++)
+                requests.Add(listener.GetContextAsync());
 
+            while (!token.IsCancellationRequested){
+                Task t = await Task.WhenAny(requests);
+                requests.Remove(t);
+
+                if (t is Task<HttpListenerContext>){
+                    var context = (t as Task<HttpListenerContext>).Result;
+                    requests.Add(HandleInboundConnections(context));
+                    requests.Add(listener.GetContextAsync());
+                }
+            }
+        }
+
+        private async Task HandleInboundConnections(HttpListenerContext context) {
                 HttpListenerRequest request = context.Request;
                 HttpListenerResponse response = context.Response;
 
@@ -72,18 +89,12 @@ namespace Insomnium {
                 
                 await response.OutputStream.WriteAsync(rd.Data, 0, rd.Data.Length);
                 response.Close();
-            }
         }
 
         public void StartServer(){
-            listener = new HttpListener();
-            listener.Prefixes.Add(url);
-            listener.Start();
-
-            Task listenTask = HandleInboundConnections();
+            CancellationToken token = new CancellationToken();
+            Task listenTask = Listen(url, 32, token);
             listenTask.GetAwaiter().GetResult();
-
-            listener.Close();
         }
     }
 }
