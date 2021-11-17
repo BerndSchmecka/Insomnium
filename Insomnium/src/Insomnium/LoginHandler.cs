@@ -26,7 +26,7 @@ namespace Insomnium {
                  }
 
                  if(validate_login() == ELoginErrorCode.OK){
-                     LoginResponse = new ResponseData(response, JsonConvert.SerializeObject(new JSON_Login_Response("@" + req.identifier.user + ":" + Program.HOMESERVER_NAME, "sdsdasdsds", Program.HOMESERVER_NAME, device_id)), "application/json", 200);
+                     LoginResponse = new ResponseData(response, JsonConvert.SerializeObject(new JSON_Login_Response("@" + req.identifier.user + ":" + Program.HOMESERVER_NAME, generateAccessToken(), Program.HOMESERVER_NAME, device_id)), "application/json", 200);
                  } else {
                      LoginResponse = new ResponseData(response, "{\"errcode\":\"" + validate_login().ToString() + "\"}", "application/json", 403);
                  }
@@ -51,7 +51,7 @@ namespace Insomnium {
          }
 
          private ELoginErrorCode validate_login() {
-             return ELoginErrorCode.M_FORBIDDEN;
+             return ELoginErrorCode.M_USER_DEACTIVATED;
          }
     }
 }
